@@ -9,7 +9,7 @@ import time
 from typing import Literal, Union, List, Tuple
 
 
-def scrape_heathrow_pages(driver:WebDriver)-> pd.DataFrame:
+def scrape_heathrow_pages(driver:WebDriver,departure:bool=True)-> pd.DataFrame:
      
     times = []
     codes = []
@@ -30,7 +30,9 @@ def scrape_heathrow_pages(driver:WebDriver)-> pd.DataFrame:
             print('Reached end of the page')
             break
 
-    df = pd.DataFrame({"time_sch":times,'code':codes,'dest':citys, "status":status,'url':urls})
+
+    city_col = 'dest' if departure else 'orig'
+    df = pd.DataFrame({"time_sch":times,'code':codes,city_col:citys, "status":status,'url':urls})
     df = df.set_index('code')        
     
     return df
@@ -109,9 +111,60 @@ def go_to_top(driver: WebDriver):
             break
     
 
+
+def lgw_return_to_start(driver:WebDriver):
+    """
+    Click on the earlier button until reaches the end (of the current date)
+    """
+    active = True
+    btn_earlier_tag = '//div[@class="flights-feeds-page"]//div[@class="flights-feeds-content-wrapper"]//div[@class="d-flex timeFrame-controls"]//button[1]'
+    while active:
+        status = driver.find_element(By.XPATH,btn_earlier_tag).get_attribute('class')
+        if 'inactive' in status:
+            return None
+        else:
+            # click on earlier button
+            driver.find_element(By.XPATH, btn_earlier_tag).click()
+
+def lgw_click_later(driver:WebDriver):
+    btn_later_tag = '//div[@class="flights-feeds-page"]//div[@class="flights-feeds-content-wrapper"]//div[@class="d-flex timeFrame-controls"]//button[2]'
+    status = driver.find_element(By.XPATH,btn_later_tag).get_attribute('class')
+    if 'inactive' in status:
+            raise NoSuchElementException
+    else:
+        # click on earlier button
+        driver.find_element(By.XPATH, btn_later_tag).click()
+
+
+def lgw_get_one_page_data(driver:WebDriver,city_col: Literal["orig",'dest']):
+    table_tag = '//div[@class="flights-feeds-page"]//div[@class="flights-feeds-content-wrapper"]//table[@class="flights-table"]/tbody//tr'
+    flights = []
+    for flight in driver.find_elements(By.XPATH,table_tag):
+        if 'flight-line' not in flight.get_attribute('class'):
+            continue
+        else: 
+            data = dict(zip( ['time',city_col,'dummy','code','status'],[flight_info.text for flight_info in flight.find_elements(By.XPATH,'.//td')[1:6]]))
+        # [for flight_info in flight.find_elements(By.XPATH,'.//td')]:
+        #     print(flight_info.text)
+            flights.append(data)
+    return flights
+
+def lgw_return_data(driver:WebDriver,departure:bool = True):
+    city_col = 'dest' if departure else 'orig'
+    flights = []
+    while True:
+        flight_one_page = lgw_get_one_page_data(driver=driver,city_col = city_col)
+        flights.extend(flight_one_page)
+        try:
+            lgw_click_later(driver=driver)
+        except Exception:
+            print('reached end of the page')
+            return flights
+
+
 if __name__ == '__main__':
     # initiate the web driver
     driver = webdriver.Firefox()
 
     print('Finishing job')
-        
+    driver.quit()
