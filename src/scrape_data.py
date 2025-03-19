@@ -3,6 +3,9 @@ from  selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.common.by import By 
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.firefox.options import Options
+
+
 import pandas as pd
 import time
 
