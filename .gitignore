@@ -2,3 +2,6 @@ data/*
 *.tsv
 *.csv
 */cache/*.json
+/analysis/*
+
+.venv
