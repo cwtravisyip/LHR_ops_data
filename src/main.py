@@ -6,12 +6,11 @@ import logging
 from selenium import webdriver 
 from selenium.webdriver.firefox.options import Options
 
-if __name__ == '__main__':
-    import os
-    os.chdir('./code')
-    print(os.getcwd())
+import os
+from src.scrape_data import *
 
-    from src.scrape_data import *
+if __name__ == '__main__':
+
 
 
     logger = logging.getLogger(__name__)
@@ -45,7 +44,7 @@ if __name__ == '__main__':
             driver.get(val['url'])
             time.sleep(sleep_time)
             try:
-                time_act, iata = scrape_flight_page(dep=True)
+                time_act, iata = scrape_flight_page(dep=True, driver=driver)
                 departures.loc[key,['time_act','iata']] = time_act, iata
                 # print(f'{counter}: flight {key} scheduled at {val["time_sch"]} departed at {time_act}')
             except:
@@ -76,11 +75,11 @@ if __name__ == '__main__':
             driver.get(val['url'])
             time.sleep(sleep_time)
             try:
-                time_act,iata = scrape_flight_page(dep = False)
+                time_act,iata = scrape_flight_page(dep = False,driver = driver)
                 arrivals.loc[key,['time_act','iata']] = time_act, iata
                 # print(f'{counter}: flight {key} scheduled at {val["time_sch"]} landed at {time_act}')
             except:
-                logger.log(f"Error occured when calling scrape_flight_page for {val['status']} flight {key}")
+                logger.info(f"Error occured when calling scrape_flight_page for {val['status']} flight {key}")
                 error_list.append(val['url'])
             counter +=1 
 
@@ -99,14 +98,14 @@ if __name__ == '__main__':
     # define file name
     # Get the parent directory (preceding folder) of the current directory
     parent_directory = os.path.dirname(os.getcwd())
-    filepath = os.path.join(parent_directory ,"data",file_name )
+    filepath = os.path.join(os.getcwd(),"data",file_name )
 
     # save to csv
-    logger.log(f"Saving df to {filepath}")
+    logger.info(f"Saving df to {filepath}")
     df_lhr.to_csv(filepath)
 
 
     # export the error list
     file_name = f"error_{current_date.strftime('%d%b%Y')}_LHR.txt"
-    with open(os.path.join(parent_directory,'data',file_name), 'w') as file:
+    with open(os.path.join(os.getcwd(),'data',file_name), 'w') as file:
         file.write("\n".join(error_list))
